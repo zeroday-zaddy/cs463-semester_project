@@ -1,13 +1,55 @@
 import des
-
+class TextFormat:
+    """For cool visual you know"""
+    #red
+    CIPHER='\x1b[5;91m' 
+    #green
+    PLAIN='\x1b[5;92m'
+    #ending ascii escape
+    ENDC='\x1b[0m'
 def toblock64(text):
-    b = 0
+    """list of 8 ascii bytes"""
+
+    ASCII_BITS = 8
+    BLOCK_BITS = des.BLOCK_SIZE
+    ASCII_BLOCKS = BLOCK_BITS // ASCII_BITS
+    
+    blocks = []
+    b = 0b0
     i = 0
     for c in text:
         b += ord(c)
-        b = b << 8
-    b = b >> 8
-    return b
+        b <<= ASCII_BITS
+        i+=1
+
+        if i % ASCII_BLOCKS == 0:
+            b >>= ASCII_BITS
+            blocks.append(b)
+            b = 0b0
+    if i % ASCII_BLOCKS != 0:
+        b >>= ASCII_BITS
+        blocks.append(b)
+        b = 0b0
+
+    return blocks
+
+def blockToString(blocks):
+    ASCII_MASK = 0xFF
+    ASCII_BITS = 8
+    BLOCK_BITS = des.BLOCK_SIZE
+    ASCII_BLOCKS = BLOCK_BITS // ASCII_BITS
+    
+    message = ""
+    for block in blocks:
+        block_message = ""
+        block2 = block
+        for i in range(ASCII_BLOCKS):
+            char = chr(block2 & ASCII_MASK)
+            block2 >>= (ASCII_BITS)
+            block_message = char + block_message
+        message += block_message
+        
+    return message
 
 def permute(block, bsize, ptable):
     """permute the 64 bits based 
@@ -151,13 +193,13 @@ def rounds(block, key, encrypting):
     rotated_key = key56
 
 
-    print('--00',format(rotated_key, "056b"), format(key56, "014x"))
+    #print('--00',format(rotated_key, "056b"), format(key56, "014x"))
 
     for i in range(des.ROUNDS):
         round = i + 1
         (round_key, rotated_key) = \
             key_transform(rotated_key, round, encrypting)
-        print(f'--{round:02d}',format(rotated_key, "056b"), format(round_key, "012x"))
+        #print(f'--{round:02d}',format(rotated_key, "056b"), format(round_key, "012x"))
         
         fiestel_block = fiestel(fiestel_block, round_key)
 
@@ -188,6 +230,37 @@ def get(arr, row, col, cols):
 
 def bin_len(b):
     return len(bin(b)[2:])
+
+
+def main():
+    plaintext = input("Enter the message to encrpyt:\n")
+    plaintext_blocks = toblock64(plaintext)
+    key = int(input(f"\nEnter a key (hex) from 0 to {des.MASK64:#0x} (64 bits):\n"),16)
+
+
+    print("\nEncrypting...")
+    ciphertext_blocks = []
+    for block in plaintext_blocks:
+        ciphertext_block = rounds(block, key, encrypting=True)
+        ciphertext_blocks.append(ciphertext_block)
+    
+    ciphertext = blockToString(ciphertext_blocks)
+    print(f"This is the ciphertext:\n" \
+        f"{TextFormat.CIPHER}{ciphertext}{TextFormat.ENDC}\n")
+
+    print("Decrypting...")
+    decrypted_blocks = []
+    for block in ciphertext_blocks:
+        decrypted_block = rounds(block, key, encrypting=False)
+        decrypted_blocks.append(decrypted_block)
+    
+    decrypted = blockToString(decrypted_blocks)
+    print(f"Your message decrypted:\n" \
+        f"{TextFormat.PLAIN}{decrypted}{TextFormat.ENDC}")
+
+if __name__ == "__main__":
+    main()
+
 
 
     
