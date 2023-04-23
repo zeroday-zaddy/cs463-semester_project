@@ -233,6 +233,8 @@ def bin_len(b):
 
 
 def main():
+    print("DES Encryption of ASCII Text In ECB Mode")
+    print("-"*40)
     plaintext = input("Enter the message to encrpyt:\n")
     plaintext_blocks = toblock64(plaintext)
     key = int(input(f"\nEnter a key (hex) from 0 to {des.MASK64:#0x} (64 bits):\n"),16)
